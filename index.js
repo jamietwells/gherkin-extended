@@ -4,22 +4,27 @@ const { string, newline, whitespace, regexp, seq, alt, eof } = pkg;
 
 const RestOfLine = seq(regexp(/[^\r\n]/).desc('content').many().map(chars => chars.join('')), newline.or(eof)).map(r => r[0]);
 
-// Parser for a single line comment
-const Comment = seq(string('#'), whitespace.many(), RestOfLine).desc('comment').map((r) => ({ type: 'Comment', comment: r[2] }));
+const Comment = seq(whitespace.many(), string('#'), whitespace.many(), RestOfLine).desc('comment').map((r) => ({ type: 'Comment', comment: r[3] }));
 
-// Parser for a blank line
 const BlankLine = seq(regexp(/[^\S\r\n]/).many(), newline).desc('blank line').map(_ => ({ type: 'BlankLine' }));
 
-const Step = word => seq(string('  '), string(word), whitespace.many(), RestOfLine).map(([_1, _2, _3, title]) => ({ type: `Step`, word, title }));
+const Step = level => word => seq(string('  ').times(level), string(word), whitespace.many(), RestOfLine).map(([_1, _2, _3, title]) => ({ type: `Step`, word, title }));
 
-const AnyStep = alt(...[`Given`, `When`, `Then`, `And`, `But`, `*`].map(Step));
+const AnyStep = level => alt(...[`Given`, `When`, `Then`, `And`, `But`, `*`].map(Step(level)));
 
-const ScenarioTitle = seq(string('Scenario'), string(':'), whitespace.many(), RestOfLine)
-    .map(([_1, _2, _3, title]) => ({ type: 'Scenario', title }));
+const TitleLine = name => level => seq(string('  ').times(level), string(name), string(':'), whitespace.many(), RestOfLine)
+    .map(([_1, _2, _3, _4, title]) => ({ type: name, title }));
 
-const ScenarioBlock = seq(ScenarioTitle, AnyStep.many()).map(([title, steps]) => ({ ...title, steps }));
+const [ScenarioTitle, FeatureTitle] = [`Scenario`, `Feature`].map(TitleLine);
 
-const GherkinParser = seq(alt(Comment, BlankLine, ScenarioBlock).many(), eof).map(r => r[0]);
+const BlankLinesOrComments = [ Comment, BlankLine ];
+
+const ScenarioBlock = level => seq(ScenarioTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
+
+const FeatureBlock = level => seq(FeatureTitle(level), alt(ScenarioBlock(level + 1), ...BlankLinesOrComments).many())
+    .map(([feature, scenarios]) => ({ ...feature, scenarios }));
+
+const GherkinParser = seq(alt(...BlankLinesOrComments, ScenarioBlock(0), FeatureBlock(0)).many(), eof).map(r => r[0]);
 
 // Function to parse a Gherkin file
 async function parseGherkin(name) {
@@ -34,4 +39,4 @@ async function parseGherkin(name) {
 }
 
 await parseGherkin(`small`);
-//await parseGherkin(`medium`);
+await parseGherkin(`medium`);
