@@ -2,22 +2,50 @@ import { readFile } from 'fs/promises';
 import pkg from 'parsimmon';
 const { string, newline, whitespace, regexp, seq, alt, eof } = pkg;
 
+const stepIdentifiers = [
+    `Given`,
+    `When`,
+    `Then`,
+    `And`,
+    `But`,
+    `*`
+];
+
+const keywords = [
+    `Feature`,
+    `Rule`,
+    `Example`,
+    `Scenario`,
+    `Background`,
+    `Scenario Outline`,
+    `Scenario Template`,
+    `Examples`,
+    `Scenarios`,
+    ...stepIdentifiers
+];
+
 const RestOfLine = seq(regexp(/[^\r\n]/).desc('content').many().map(chars => chars.join('')), newline.or(eof)).map(r => r[0]);
 
 const Comment = seq(whitespace.many(), string('#'), whitespace.many(), RestOfLine).desc('comment').map((r) => ({ type: 'Comment', comment: r[3] }));
 
 const BlankLine = seq(regexp(/[^\S\r\n]/).many(), newline).desc('blank line').map(_ => ({ type: 'BlankLine' }));
 
-const Step = level => word => seq(string('  ').times(level), string(word), whitespace.many(), RestOfLine).map(([_1, _2, _3, title]) => ({ type: `Step`, word, title }));
+const Indentation = level => string('  ').desc('indentation').times(level);
 
-const AnyStep = level => alt(...[`Given`, `When`, `Then`, `And`, `But`, `*`].map(Step(level)));
+const Step = level => word => seq(Indentation(level), string(word), whitespace.many(), RestOfLine).map(([_1, _2, _3, title]) => ({ type: `Step`, word, title }));
 
-const TitleLine = name => level => seq(string('  ').times(level), string(name), string(':'), whitespace.many(), RestOfLine)
-    .map(([_1, _2, _3, _4, title]) => ({ type: name, title }));
+const AnyStep = level => alt(...stepIdentifiers.map(Step(level)));
+
+const DescriptionStop = alt(...keywords.map(w => string(w)));
+
+const DescriptionParser = level => seq(Indentation(level + 1).notFollowedBy(DescriptionStop), RestOfLine).many().map(r => r.map(l => l[1]).join("\n"))
+
+const TitleLine = name => level => seq(Indentation(level), string(name), string(':'), whitespace.many(), RestOfLine, DescriptionParser(level))
+    .map(([_1, _2, _3, _4, title, description]) => ({ type: name, title, description }));
 
 const [ScenarioTitle, FeatureTitle] = [`Scenario`, `Feature`].map(TitleLine);
 
-const BlankLinesOrComments = [ Comment, BlankLine ];
+const BlankLinesOrComments = [Comment, BlankLine];
 
 const ScenarioBlock = level => seq(ScenarioTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
 
@@ -40,3 +68,5 @@ async function parseGherkin(name) {
 
 await parseGherkin(`small`);
 await parseGherkin(`medium`);
+await parseGherkin(`descriptions`);
+await parseGherkin(`full`);
