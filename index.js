@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises';
 import pkg from 'parsimmon';
-const { string, newline, whitespace, regexp, seq, alt, eof } = pkg;
+const { string, newline, whitespace, regexp, noneOf, seq, alt, eof, end } = pkg;
 
 const stepIdentifiers = [
     `Given`,
@@ -24,7 +24,13 @@ const keywords = [
     ...stepIdentifiers
 ];
 
-const RestOfLine = seq(regexp(/[^\r\n]/).desc('content').many().map(chars => chars.join('')), newline.or(eof)).map(r => r[0]);
+const RestOfLine = seq(noneOf('\r\n').desc('content').many().map(chars => chars.join('')), end).map(r => r[0]);
+
+const Parameter = seq(string(`<`), noneOf('>').many(), string('>')).map(([_1, chars, _2]) => ({ type: 'Parameter', name: chars.join('') }));
+
+const RegularText = noneOf('\r\n<').atLeast(1).map((chars) => ({ type: 'Regular Text', text: chars.join('') }));
+
+const ParmeterizedLine = seq(Parameter.or(RegularText).many(), end);
 
 const Comment = seq(whitespace.many(), string('#'), whitespace.many(), RestOfLine).desc('comment').map((r) => ({ type: 'Comment', comment: r[3] }));
 
@@ -32,7 +38,7 @@ const BlankLine = seq(regexp(/[^\S\r\n]/).many(), newline).desc('blank line').ma
 
 const Indentation = level => string('  ').desc('indentation').times(level);
 
-const Step = level => word => seq(Indentation(level), string(word), whitespace.many(), RestOfLine).map(([_1, _2, _3, title]) => ({ type: `Step`, word, title }));
+const Step = level => word => seq(Indentation(level), string(word), whitespace.many(), ParmeterizedLine).map(([_1, _2, _3, title]) => ({ type: `Step`, word, title }));
 
 const AnyStep = level => alt(...stepIdentifiers.map(Step(level)));
 
@@ -40,7 +46,7 @@ const DescriptionStop = alt(...keywords.map(w => string(w)));
 
 const DescriptionParser = level => seq(Indentation(level + 1).notFollowedBy(DescriptionStop), RestOfLine).many().map(r => r.map(l => l[1]).join("\n"))
 
-const TitleLine = name => level => seq(Indentation(level), string(name).desc(name), string(':'), whitespace.many(), RestOfLine, DescriptionParser(level))
+const TitleLine = name => level => seq(Indentation(level), string(name).desc(name), string(':'), whitespace.many(), ParmeterizedLine, DescriptionParser(level))
     .map(([_1, _2, _3, _4, title, description]) => ({ type: name, title, description }));
 
 const [ScenarioOutlineTitle, BackgroundTitle, ScenarioTitle, FeatureTitle] = [`Scenario Outline`, `Background`, `Scenario`, `Feature`].map(TitleLine);
@@ -99,3 +105,14 @@ await parseGherkin(`small`);
 await parseGherkin(`medium`);
 await parseGherkin(`descriptions`);
 await parseGherkin(`background`);
+await parseGherkin(`parameters`);
+
+/*
+Features to test:
+ - Parsing decriptions
+   - Include keywords inside descriptions, full makrdown etc
+   - They only stop when the intent is perfect and there's a keyword directly after - doesn't need the :
+ - Comments
+   - With crazy things in the comments like keywords, # symbols, :, etc
+ - Blank lines
+*/
