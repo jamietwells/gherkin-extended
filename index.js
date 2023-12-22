@@ -122,4 +122,7 @@ Features to test:
  - Comments
    - With crazy things in the comments like keywords, # symbols, :, etc
  - Blank lines
+ - Breaking lines over whitespace. e.g comments
+      #
+        Is this a comment? Shouldn't be.
 */
