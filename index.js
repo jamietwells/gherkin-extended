@@ -24,11 +24,11 @@ const keywords = [
     ...stepIdentifiers
 ];
 
-const RestOfLine = seq(noneOf('\r\n').desc('content').many().map(chars => chars.join('')), end).map(r => r[0]);
+const RestOfLine = seq(noneOf('\r\n').desc('content').many().tie(), end).map(r => r[0]);
 
-const Parameter = seq(string(`<`), noneOf('>').many(), string('>')).map(([_1, chars, _2]) => ({ type: 'Parameter', name: chars.join('') }));
+const Parameter = seq(string(`<`), noneOf('>').many().tie(), string('>')).map(([_1, chars, _2]) => ({ type: 'Parameter', name: chars }));
 
-const RegularText = noneOf('\r\n<').atLeast(1).map((chars) => ({ type: 'Regular Text', text: chars.join('') }));
+const RegularText = noneOf('\r\n<').atLeast(1).tie().map((chars) => ({ type: 'Regular Text', text: chars }));
 
 const ParmeterizedLine = seq(Parameter.or(RegularText).many(), end);
 
@@ -46,7 +46,7 @@ const AnyStep = level => alt(...stepIdentifiers.map(Step(level)));
 
 const DescriptionStop = alt(...keywords.map(w => string(w)));
 
-const DescriptionParser = level => seq(Indentation(level + 1).notFollowedBy(DescriptionStop), RestOfLine).many().map(r => r.map(l => l[1]).join("\n"))
+const DescriptionParser = level => seq(Indentation(level + 1).notFollowedBy(DescriptionStop), RestOfLine).map(l => l[1]).many().tieWith("\n");
 
 const TitleLine = name => level => seq(Indentation(level), string(name).desc(name), string(':'), HorizontalWhitespace.many(), ParmeterizedLine, DescriptionParser(level))
     .map(([_1, _2, _3, _4, title, description]) => ({ type: name, title, description }));
@@ -55,14 +55,23 @@ const [ScenarioOutlineTitle, BackgroundTitle, ScenarioTitle, FeatureTitle] = [`S
 
 const BlankLinesOrComments = [Comment, BlankLine];
 
-const ExampleTitle = level => seq(Indentation(level), string(`Example`).desc(`Example`), string(':'), HorizontalWhitespace.many())
-    .map(() => ({ type: `Example` }));
+const ExampleTitle = level => seq(Indentation(level), string(`Examples`).desc(`Examples`), string(':'), HorizontalWhitespace.many())
+    .map(() => ({ type: `Examples` }));
 
-const ExampleBlock = level => seq(ExampleTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
+const cellContent = regexp(/[^|\r\n]+/).map(content => content.trim());
+
+const tableCell = seq(string('|'), cellContent).map(result => result[1]);
+
+const tableLine = seq(tableCell.many(), string('|'))
+    .map(result => result[0]);
+
+const TableLine = level => seq(Indentation(level), tableLine, end).map((r) => ({ type: `TableRow`, Cells: r[1] }))
+
+const ExampleBlock = level => seq(ExampleTitle(level), alt(TableLine(level + 1), ...BlankLinesOrComments).many()).map(([title, tableLines]) => ({ ...title, tableLines }));
 
 const BackgroundBlock = level => seq(BackgroundTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
 
-const ScenarioOutlineBlock = level => seq(ScenarioOutlineTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
+const ScenarioOutlineBlock = level => seq(ScenarioOutlineTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many(), ExampleBlock(level + 1).atMost(1)).map(([title, steps, example]) => ({ ...title, steps, Examples: example }));
 
 const ScenarioBlock = level => seq(ScenarioTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
 
@@ -77,19 +86,19 @@ async function parseGherkin(name) {
         // Destructure error object
         const { index, expected } = error;
         const { offset, line, column } = index;
-    
+
         // Split text sample into lines
         const lines = textSample.split('\n');
-    
+
         // Check if line number is within the range
         if (line - 1 < lines.length) {
             console.error('Error detected:');
             console.error(`Expected: ${expected.join(', ')}`);
             console.error(`At line ${line}, column ${column} (offset ${offset}):`);
-    
+
             // Print the line with error
             console.error(lines[line - 1]);
-    
+
             // Print a pointer to the error location
             let pointer = ' '.repeat(column - 1) + '^';
             console.error(pointer);
