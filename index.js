@@ -21,6 +21,10 @@ const keywords = [
     `Scenario Template`,
     `Examples`,
     `Scenarios`,
+    `"""`,
+    `|`,
+    `@`,
+    `#`,
     ...stepIdentifiers
 ];
 
@@ -34,15 +38,28 @@ const ParmeterizedLine = seq(Parameter.or(RegularText).many(), end);
 
 const HorizontalWhitespace = regexp(/[^\S\r\n]/).desc(`horizontal whitespace`);
 
+const NonWhitespaceOrAtSymbol = regexp(/[^\s@]/).desc(`non-whitespace`);
+
 const Comment = seq(whitespace.many(), string('#'), HorizontalWhitespace.many(), RestOfLine).desc('comment').map((r) => ({ type: 'Comment', comment: r[3] }));
 
 const BlankLine = seq(HorizontalWhitespace.many(), newline).desc('blank line').map(_ => ({ type: 'BlankLine' }));
 
-const Indentation = level => string('  ').desc('indentation').times(level);
+const Indentation = level => string('  ').desc(`indentation of ${level * 2} spaces`).times(level);
 
-const Step = level => word => seq(Indentation(level), string(word), HorizontalWhitespace.many(), ParmeterizedLine).map(([_1, _2, _3, title]) => ({ type: `Step`, word, title }));
+const Step = level => word => seq(Indentation(level), string(word), HorizontalWhitespace.many(), ParmeterizedLine).desc(`${word} step`).map(([_1, _2, _3, title]) => ({ type: `Step`, word, title }));
 
-const AnyStep = level => alt(...stepIdentifiers.map(Step(level)));
+const CellContent = regexp(/[^|\r\n]+/).map(content => content.trim());
+
+const TableCell = seq(string('|'), CellContent).map(result => result[1]);
+
+const TableLine = seq(TableCell.many(), string('|'))
+    .map(result => result[0]);
+
+const SingleTableRow = level => seq(Indentation(level), TableLine, end).map((r) => ({ type: `TableRow`, Cells: r[1] }));
+
+const Table = level => seq(SingleTableRow(level), alt(SingleTableRow(level), ...BlankLinesOrComments).many()).map(r => ({ type: `Table`, Rows: r }));
+
+const StepLineOrTableBlock = level => alt(...stepIdentifiers.map(Step(level)), Table(level + 1));
 
 const DescriptionStop = alt(...keywords.map(w => string(w)));
 
@@ -55,25 +72,20 @@ const [ScenarioOutlineTitle, BackgroundTitle, ScenarioTitle, FeatureTitle] = [`S
 
 const BlankLinesOrComments = [Comment, BlankLine];
 
-const ExampleTitle = level => seq(Indentation(level), string(`Examples`).desc(`Examples`), string(':'), HorizontalWhitespace.many())
+const ExampleTitle = level => seq(Indentation(level), string(`Examples`), string(':'), HorizontalWhitespace.many(), end)
     .map(() => ({ type: `Examples` }));
 
-const cellContent = regexp(/[^|\r\n]+/).map(content => content.trim());
+const ExampleBlock = level => seq(ExampleTitle(level), Table(level + 1)).map(([title, table]) => ({ ...title, Table: table }));
 
-const tableCell = seq(string('|'), cellContent).map(result => result[1]);
+const BackgroundBlock = level => seq(BackgroundTitle(level), alt(StepLineOrTableBlock(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
 
-const tableLine = seq(tableCell.many(), string('|'))
-    .map(result => result[0]);
+const ScenarioOutlineBlock = level => seq(ScenarioOutlineTitle(level), alt(StepLineOrTableBlock(level + 1), ...BlankLinesOrComments).many(), ExampleBlock(level + 1).atMost(1)).map(([title, steps, example]) => ({ ...title, steps, Examples: example }));
 
-const TableLine = level => seq(Indentation(level), tableLine, end).map((r) => ({ type: `TableRow`, Cells: r[1] }))
+const Tag = seq(string(`@`), NonWhitespaceOrAtSymbol.many().tie()).map(r => ({ type: `Tag`, value: r[1] }));
 
-const ExampleBlock = level => seq(ExampleTitle(level), alt(TableLine(level + 1), ...BlankLinesOrComments).many()).map(([title, tableLines]) => ({ ...title, tableLines }));
+const Tags = level => seq(Indentation(level), Tag.sepBy(HorizontalWhitespace.atLeast(1)), end).map(([indent, tags]) => tags);
 
-const BackgroundBlock = level => seq(BackgroundTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
-
-const ScenarioOutlineBlock = level => seq(ScenarioOutlineTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many(), ExampleBlock(level + 1).atMost(1)).map(([title, steps, example]) => ({ ...title, steps, Examples: example }));
-
-const ScenarioBlock = level => seq(ScenarioTitle(level), alt(AnyStep(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
+const ScenarioBlock = level => seq(Tags(level).atMost(1), ScenarioTitle(level), alt(StepLineOrTableBlock(level + 1), ...BlankLinesOrComments).many()).map(([tags, title, steps]) => ({ ...title, tags: tags.flat(), steps }));
 
 const FeatureBlock = level => seq(FeatureTitle(level), alt(ScenarioOutlineBlock(level + 1), BackgroundBlock(level + 1), ScenarioBlock(level + 1), ...BlankLinesOrComments).many())
     .map(([feature, scenarios]) => ({ ...feature, scenarios }));
@@ -100,8 +112,11 @@ async function parseGherkin(name) {
             console.error(lines[line - 1]);
 
             // Print a pointer to the error location
-            let pointer = ' '.repeat(column - 1) + '^';
-            console.error(pointer);
+            if (column > 0) {
+                let pointer = ' '.repeat(column - 1) + '^';
+                console.error(pointer);
+            }
+            console.error(`<`);
         } else {
             console.error('Error line number is out of range of the text sample.');
         }
@@ -122,6 +137,8 @@ await parseGherkin(`medium`);
 await parseGherkin(`descriptions`);
 await parseGherkin(`background`);
 await parseGherkin(`parameters`);
+await parseGherkin(`tags`);
+await parseGherkin(`full`);
 
 /*
 Features to test:
