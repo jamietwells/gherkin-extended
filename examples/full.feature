@@ -42,7 +42,7 @@ Feature: User management
     Then I should receive an error message
 
   Rule: Password management
-
+  
     Example: Users can change their own passwords
       Given I am logged in as "Bob"
       When I change my password

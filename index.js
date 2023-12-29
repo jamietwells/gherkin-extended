@@ -57,40 +57,45 @@ const TableLine = seq(TableCell.many(), string('|'))
 
 const SingleTableRow = level => seq(Indentation(level), TableLine, end).map((r) => ({ type: `TableRow`, Cells: r[1] }));
 
-const Table = level => seq(SingleTableRow(level), alt(SingleTableRow(level), ...BlankLinesOrComments).many()).map(r => ({ type: `Table`, Rows: r }));
+const Table = level => seq(SingleTableRow(level), alt(SingleTableRow(level), BlankLinesOrComments).many()).map(r => ({ type: `Table`, Rows: r }));
 
 const StepLineOrTableBlock = level => alt(...stepIdentifiers.map(Step(level)), Table(level + 1));
 
 const DescriptionStop = alt(...keywords.map(w => string(w)));
 
-const DescriptionParser = level => seq(Indentation(level + 1).notFollowedBy(DescriptionStop), RestOfLine).map(l => l[1]).many().tieWith("\n");
+const DescriptionParser = level => seq(Indentation(level + 1).notFollowedBy(DescriptionStop), RestOfLine).map(l => l[1]).many().tieWith("\n").map(l => ({ description: l }));
 
-const TitleLine = name => level => seq(Indentation(level), string(name).desc(name), string(':'), HorizontalWhitespace.many(), ParmeterizedLine, DescriptionParser(level))
-    .map(([_1, _2, _3, _4, title, description]) => ({ type: name, title, description }));
+const TitleLine = name => level => seq(Indentation(level), string(name).desc(name), string(':'), HorizontalWhitespace.many(), ParmeterizedLine, DescriptionParser(level), BlankLinesOrComments.many())
+    .map(([_1, _2, _3, _4, title, description]) => ({ type: name, title, ...description }));
 
-const [ScenarioOutlineTitle, BackgroundTitle, ScenarioTitle, FeatureTitle] = [`Scenario Outline`, `Background`, `Scenario`, `Feature`].map(TitleLine);
+const [ ScenarioOutlineTitle, BackgroundTitle, ScenarioTitle, FeatureTitle, RuleTitle, ExampleTitle ] =
+    [`Scenario Outline`, `Background`, `Scenario`, `Feature`, `Rule`, `Example`].map(TitleLine);
 
-const BlankLinesOrComments = [Comment, BlankLine];
+const BlankLinesOrComments = alt(Comment, BlankLine);
 
-const ExampleTitle = level => seq(Indentation(level), string(`Examples`), string(':'), HorizontalWhitespace.many(), end)
+const ExamplesTitle = level => seq(Indentation(level), string(`Examples`), string(':'), HorizontalWhitespace.many(), end)
     .map(() => ({ type: `Examples` }));
 
-const ExampleBlock = level => seq(ExampleTitle(level), Table(level + 1)).map(([title, table]) => ({ ...title, Table: table }));
+const ExamplesBlock = level => seq(ExamplesTitle(level), Table(level + 1)).map(([title, table]) => ({ ...title, Table: table }));
 
-const BackgroundBlock = level => seq(BackgroundTitle(level), alt(StepLineOrTableBlock(level + 1), ...BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
+const ExampleBlock = level => seq(ExampleTitle(level), alt(StepLineOrTableBlock(level + 1), BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
 
-const ScenarioOutlineBlock = level => seq(ScenarioOutlineTitle(level), alt(StepLineOrTableBlock(level + 1), ...BlankLinesOrComments).many(), ExampleBlock(level + 1).atMost(1)).map(([title, steps, example]) => ({ ...title, steps, Examples: example }));
+const BackgroundBlock = level => seq(BackgroundTitle(level), alt(StepLineOrTableBlock(level + 1), BlankLinesOrComments).many()).map(([title, steps]) => ({ ...title, steps }));
+
+const ScenarioOutlineBlock = level => seq(ScenarioOutlineTitle(level), alt(StepLineOrTableBlock(level + 1), BlankLinesOrComments).many(), ExamplesBlock(level + 1).atMost(1)).map(([title, steps, example]) => ({ ...title, steps, Examples: example }));
 
 const Tag = seq(string(`@`), NonWhitespaceOrAtSymbol.many().tie()).map(r => ({ type: `Tag`, value: r[1] }));
 
 const Tags = level => seq(Indentation(level), Tag.sepBy(HorizontalWhitespace.atLeast(1)), end).map(([indent, tags]) => tags);
 
-const ScenarioBlock = level => seq(Tags(level).atMost(1), ScenarioTitle(level), alt(StepLineOrTableBlock(level + 1), ...BlankLinesOrComments).many()).map(([tags, title, steps]) => ({ ...title, tags: tags.flat(), steps }));
+const ScenarioBlock = level => seq(Tags(level).atMost(1), ScenarioTitle(level), alt(StepLineOrTableBlock(level + 1), BlankLinesOrComments).many()).map(([tags, title, steps]) => ({ ...title, tags: tags.flat(), steps }));
 
-const FeatureBlock = level => seq(FeatureTitle(level), alt(ScenarioOutlineBlock(level + 1), BackgroundBlock(level + 1), ScenarioBlock(level + 1), ...BlankLinesOrComments).many())
+const RuleBlock = level => seq(Tags(level).atMost(1), RuleTitle(level), ExampleBlock(level + 1).many()).map(([tags, title, examples]) => ({ ...title, tags: tags.flat(), examples }));
+
+const FeatureBlock = level => seq(FeatureTitle(level), alt(ScenarioOutlineBlock(level + 1), RuleBlock(level + 1), BackgroundBlock(level + 1), ScenarioBlock(level + 1), BlankLinesOrComments).many())
     .map(([feature, scenarios]) => ({ ...feature, scenarios }));
 
-const GherkinParser = seq(alt(...BlankLinesOrComments, ScenarioBlock(0), FeatureBlock(0)).many(), eof).map(r => r[0]);
+const GherkinParser = seq(alt(BlankLinesOrComments, ScenarioBlock(0), FeatureBlock(0), RuleBlock(0)).many(), eof).map(r => r[0]);
 
 // Function to parse a Gherkin file
 async function parseGherkin(name) {
@@ -130,16 +135,18 @@ async function parseGherkin(name) {
     } else {
         printErrorMessage(result, text);
     }
+    return result.status ? [ ] : [name];
 }
 
-await parseGherkin(`small`);
-await parseGherkin(`medium`);
-await parseGherkin(`descriptions`);
-await parseGherkin(`background`);
-await parseGherkin(`parameters`);
-await parseGherkin(`tags`);
-await parseGherkin(`full`);
-
+console.log([
+    ... await parseGherkin(`small`),
+    ... await parseGherkin(`medium`),
+    ... await parseGherkin(`descriptions`),
+    ... await parseGherkin(`background`),
+    ... await parseGherkin(`parameters`),
+    ... await parseGherkin(`tags`),
+    ... await parseGherkin(`full`),
+]);
 /*
 Features to test:
  - Parsing decriptions
