@@ -1,0 +1,124 @@
+[
+    {
+        "type": "Comment",
+        "comment": "Example Gherkin File"
+    },
+    {
+        "type": "BlankLine"
+    },
+    {
+        "type": "Feature",
+        "title": "User management",
+        "tags": [],
+        "description": [
+            "In order to use the system effectively",
+            "As an admin user",
+            "I want to manage user accounts",
+            ""
+        ],
+        "scenarios": [
+            {
+                "type": "ScenarioOutline",
+                "title": "Changing user roles",
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as an admin"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I change the role of \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "name"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\" to \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "newRole"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the role of \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "name"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\" should be \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "newRole"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ],
+                "examples": [
+                    {
+                        "type": "Examples",
+                        "table": {
+                            "type": "Table",
+                            "rows": [
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "name",
+                                        "newRole"
+                                    ]
+                                },
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "Alice",
+                                        "regular"
+                                    ]
+                                },
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "Bob",
+                                        "admin"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+]

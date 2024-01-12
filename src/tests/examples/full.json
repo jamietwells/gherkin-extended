@@ -1,0 +1,429 @@
+[
+    {
+        "type": "Comment",
+        "comment": "Example Gherkin File"
+    },
+    {
+        "type": "BlankLine"
+    },
+    {
+        "type": "Feature",
+        "title": "User management",
+        "tags": [],
+        "description": [
+            "In order to use the system effectively",
+            "As an admin user",
+            "I want to manage user accounts",
+            ""
+        ],
+        "scenarios": [
+            {
+                "type": "Background",
+                "title": "Users exist in the system",
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the following users exist:"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Table",
+                        "rows": [
+                            {
+                                "type": "TableRow",
+                                "cells": [
+                                    "name",
+                                    "email",
+                                    "role"
+                                ]
+                            },
+                            {
+                                "type": "TableRow",
+                                "cells": [
+                                    "Alice",
+                                    "alice@example.com",
+                                    "admin"
+                                ]
+                            },
+                            {
+                                "type": "TableRow",
+                                "cells": [
+                                    "Bob",
+                                    "bob@example.com",
+                                    "regular"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "Admin creates a new user account",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as an admin"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I create a new user account with the following details:"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Table",
+                        "rows": [
+                            {
+                                "type": "TableRow",
+                                "cells": [
+                                    "name",
+                                    "email",
+                                    "role"
+                                ]
+                            },
+                            {
+                                "type": "TableRow",
+                                "cells": [
+                                    "Charlie",
+                                    "charlie@example.com",
+                                    "regular"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "a user account should be created for Charlie"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "ScenarioOutline",
+                "title": "Changing user roles",
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as an admin"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I change the role of \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "name"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\" to \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "newRole"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the role of \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "name"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\" should be \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "newRole"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ],
+                "examples": [
+                    {
+                        "type": "Examples",
+                        "table": {
+                            "type": "Table",
+                            "rows": [
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "name",
+                                        "newRole"
+                                    ]
+                                },
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "Alice",
+                                        "regular"
+                                    ]
+                                },
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "Bob",
+                                        "admin"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "Admin deletes a user account",
+                "tags": [
+                    {
+                        "type": "Tag",
+                        "value": "tag1"
+                    },
+                    {
+                        "type": "Tag",
+                        "value": "tag2"
+                    }
+                ],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as an admin"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "And",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user \"Charlie\" exists"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I delete the user \"Charlie\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "no account should exist for \"Charlie\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "Non-admin cannot create user",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as a regular user"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "But",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I do not have admin privileges"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I attempt to create a new user account"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I should receive an error message"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Rule",
+                "title": "Password management",
+                "tags": [],
+                "examples": [
+                    {
+                        "type": "Example",
+                        "title": "Users can change their own passwords",
+                        "tags": [],
+                        "steps": [
+                            {
+                                "type": "Step",
+                                "word": "Given",
+                                "text": [
+                                    {
+                                        "type": "Regular Text",
+                                        "text": "I am logged in as \"Bob\""
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Step",
+                                "word": "When",
+                                "text": [
+                                    {
+                                        "type": "Regular Text",
+                                        "text": "I change my password"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Step",
+                                "word": "Then",
+                                "text": [
+                                    {
+                                        "type": "Regular Text",
+                                        "text": "my password should be updated"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "BlankLine"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Example",
+                        "title": "Admins can reset user passwords",
+                        "tags": [],
+                        "steps": [
+                            {
+                                "type": "Step",
+                                "word": "Given",
+                                "text": [
+                                    {
+                                        "type": "Regular Text",
+                                        "text": "I am logged in as an admin"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Step",
+                                "word": "When",
+                                "text": [
+                                    {
+                                        "type": "Regular Text",
+                                        "text": "I reset the password for \"Alice\""
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Step",
+                                "word": "Then",
+                                "text": [
+                                    {
+                                        "type": "Regular Text",
+                                        "text": "the password for \"Alice\" should be reset"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

@@ -1,0 +1,118 @@
+[
+    {
+        "type": "Comment",
+        "comment": "Example Gherkin File"
+    },
+    {
+        "type": "BlankLine"
+    },
+    {
+        "type": "Feature",
+        "title": "User management",
+        "tags": [],
+        "description": [
+            "In order to use the system effectively",
+            "As an admin user",
+            "I want to manage user accounts",
+            ""
+        ],
+        "scenarios": [
+            {
+                "type": "Background",
+                "title": "Users exist in the system",
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as an admin"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "Admin deletes a user account",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "And",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user \"Charlie\" exists"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I delete the user \"Charlie\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "no account should exist for \"Charlie\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "ScenarioOutline",
+                "title": "Changing user roles",
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as an admin"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I change the role of \"Alice\" to \"regular\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the role of \"Alice\" should be \"regular\""
+                            }
+                        ]
+                    }
+                ],
+                "examples": []
+            }
+        ]
+    }
+]

@@ -1,0 +1,111 @@
+[
+    {
+        "type": "Feature",
+        "title": "User management",
+        "tags": [],
+        "description": [
+            "In order to use the system effectively",
+            "As an admin user",
+            "I want to manage user accounts"
+        ],
+        "scenarios": [
+            {
+                "type": "Scenario",
+                "title": "Non-admin cannot create user",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as a regular user"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "But",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I do not have admin privileges"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I attempt to create a new user account"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I should receive an error message"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "Non-admin cannot create user",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I am logged in as a regular user"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "But",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I do not have admin privileges"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I attempt to create a new user account"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "I should receive an error message"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
