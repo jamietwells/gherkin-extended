@@ -1,19 +1,30 @@
 import { expect } from 'chai';
 import { gherkinParser } from '../parser/GherkinParser.js';
 import fs from 'node:fs/promises';
-import pkg from 'parsimmon';
+import pkg, { Failure, Parser, Result } from 'parsimmon';
 import * as chai from 'chai';
-const { string, newline } = pkg;
+const { string, newline, seq } = pkg;
 
 chai.config.truncateThreshold = 0; // disable truncating
 
 describe('Gherkin Parser', () => {
-  const setupTest = <T>(parser: { tryParse: (input: string) => T }, description: (input: string) => string) => {
+  const setupTest = <T>(parser: Parser<T>, description: (input: string) => string) => {
     const result = {
-      runTest: (input: string, expected: T) => {
+      runTest: (input: string, expected: T, ...parsers: Parser<unknown>[]) => {
         it(description(input), () => {
-          const result = parser.tryParse(input);
+          const result = parser.skip(seq(...parsers)).tryParse(input);
           expect(result).deep.equal(expected);
+        });
+        return result;
+      },
+      failParse: (input: string, expectedLine: number, expectedColumn: number, ...expected: string[]) => {
+        it(description(input), () => {
+          const result = parser.parse(input) as Failure;
+          expect(result.status).false;
+          const { line, column } = result.index;
+          expect(line).to.equal(expectedLine);
+          expect(column).to.equal(expectedColumn);
+          expect(result.expected).to.have.same.members(expected);
         });
         return result;
       }
@@ -67,11 +78,6 @@ describe('Gherkin Parser', () => {
     .runTest(` `, ' ')
     .runTest(`\t`, '\t');
 
-  setupTest(gherkinParser.NonWhitespaceOrAtSymbol, input => `should parse NonWhitespaceOrAtSymbol: ${JSON.stringify(input)}`)
-    .runTest(`-`, '-')
-    .runTest(`#`, '#')
-    .runTest(`a`, 'a');
-
   setupTest(gherkinParser.Comment, input => `should parse Comment: ${JSON.stringify(input)}`)
     .runTest(`# This is a comment`, { type: 'Comment', comment: 'This is a comment' });
 
@@ -106,10 +112,16 @@ describe('Gherkin Parser', () => {
     .runTest(`@tag1`, { type: 'Tag', value: 'tag1' });
 
   setupTest(gherkinParser.Tags, input => `should parse Tags: ${JSON.stringify(input)}`)
-    .runTest(`@tag1 @tag2`, [{ type: 'Tag', value: 'tag1' }, { type: 'Tag', value: 'tag2' }]);
+    .runTest(`@tag1 @tag2`, [{ type: 'Tag', value: 'tag1' }, { type: 'Tag', value: 'tag2' }])
+    .runTest(`@tag1 \t  @tag2`, [{ type: 'Tag', value: 'tag1' }, { type: 'Tag', value: 'tag2' }])
+    .failParse(`@tag1@`, 1, 6, 'EOF', 'horizontal whitespace', 'newline', 'valid tag characters');
 
-  setupTest(gherkinParser.CellContent.skip(string(`|`)), input => `should parse CellContent: ${JSON.stringify(input)}`)
-    .runTest(`| cell content |`, 'cell content');
+  setupTest(gherkinParser.CellContent, input => `should parse CellContent: ${JSON.stringify(input)}`)
+    .runTest(String.raw`| cell content |`, 'cell content', string(`|`))
+    .runTest(String.raw`| \| |`, `|`, string(`|`))
+    .runTest(String.raw`| \\\| |`, `\\\|`, string(`|`))
+    .runTest(String.raw`|\\|`, `\\`, string(`|`))
+    .runTest(String.raw`|\|\\|`, `\|\\`, string(`|`));
 
   setupTest(gherkinParser.TableLine, input => `should parse TableLine: ${JSON.stringify(input)}`)
     .runTest(`| cell1 | cell2 |`, ['cell1', 'cell2']);
@@ -169,8 +181,10 @@ describe('Gherkin Parser', () => {
   setupTest(gherkinParser.IndentSame, input => `should parse IndentSame: ${JSON.stringify(input)}`)
     .runTest(``, 0);
 
-  setupTest(gherkinParser.IndentMoreLookahead.skip(string(`  `)), input => `should parse IndentMore: ${JSON.stringify(input)}`)
-    .runTest(`  `, 2);
+  setupTest(gherkinParser.IndentMoreLookahead, input => `should parse IndentMore: ${JSON.stringify(input)}`)
+    .runTest(` `, 1, string(` `))
+    .runTest(`  `, 2, string(`  `))
+    .runTest(`   `, 3, string(`   `));
 
   setupTest(gherkinParser.DescriptionParser.skip(gherkinParser.AnyKeyword), input => `should parse DescriptionParser: ${JSON.stringify(input)}`)
     .runTest(`This is a description\nFeature`, { description: ['This is a description'] })
