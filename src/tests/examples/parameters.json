@@ -18,6 +18,7 @@
         ],
         "scenarios": [
             {
+                "tags": [],
                 "type": "ScenarioOutline",
                 "title": "Changing user roles",
                 "steps": [

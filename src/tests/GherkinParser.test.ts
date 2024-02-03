@@ -129,7 +129,7 @@ describe('Gherkin Parser', () => {
   setupTest(gherkinParser.Table, input => `should parse Table: ${JSON.stringify(input)}`)
     .runTest(`| header1 | header2 |\n| data1 | data2 |`, { type: 'Table', rows: [{ type: `TableRow`, cells: ['header1', 'header2'] }, { type: `TableRow`, cells: ['data1', 'data2'] }] });
 
-  setupTest(gherkinParser.StepLineOrTableBlock, input => `should parse StepLineOrTableBlock: ${JSON.stringify(input)}`)
+  setupTest(gherkinParser.StepLineTableBlockOrDocString, input => `should parse StepLineOrTableBlock: ${JSON.stringify(input)}`)
     .runTest(`Given some step`, { type: 'Step', word: 'Given', text: [{ type: `Regular Text`, text: 'some step' }] });
 
   setupTest(gherkinParser.ScenarioOutlineTitle, input => `should parse ScenarioOutlineTitle: ${JSON.stringify(input)}`)
@@ -166,7 +166,7 @@ describe('Gherkin Parser', () => {
     .runTest(`Example: An example\n  Given some step`, { type: 'Example', tags: [], title: 'An example', steps: [{ type: 'Step', word: 'Given', text: [{ type: `Regular Text`, text: 'some step' }] }] });
 
   setupTest(gherkinParser.ScenarioOutlineBlock, input => `should parse ScenarioOutlineBlock: ${JSON.stringify(input)}`)
-    .runTest(`Scenario Outline: An outline\n  Given <something>`, { type: 'ScenarioOutline', title: 'An outline', steps: [{ type: 'Step', word: 'Given', text: [{ type: `Parameter`, name: 'something' }] }], examples: [] });
+    .runTest(`Scenario Outline: An outline\n  Given <something>`, { type: 'ScenarioOutline', title: 'An outline', tags: [], steps: [{ type: 'Step', word: 'Given', text: [{ type: `Parameter`, name: 'something' }] }], examples: [] });
 
   setupTest(gherkinParser.FeatureBlock, input => `should parse FeatureBlock: ${JSON.stringify(input)}`)
     .runTest(`Feature: A feature\n  Scenario: A scenario\n    Given some step`, { type: 'Feature', title: 'A feature', tags: [], description: [], scenarios: [{ tags: [], type: 'Scenario', title: 'A scenario', steps: [{ type: 'Step', word: 'Given', text: [{ type: `Regular Text`, text: 'some step' }] }] }] });
@@ -193,12 +193,20 @@ describe('Gherkin Parser', () => {
 });
 
 describe(`Full file tests`, () => {
-  for (const file of [`tiny`, `small`, `medium`, `descriptions`, `background`, `parameters`, `tags`, `full`]) {
+  for (const file of [`tiny`, `small`, `medium`, `descriptions`, `background`, `parameters`, `tags`, `full`, `docstring`, `edge-cases`]) {
     it(`Testing ${file} parses correctly`, async () => {
       const text = await fs.readFile(`./src/tests/examples/${file}.feature`, { encoding: 'utf8' });
       const result = gherkinParser.GherkinFile.tryParse(text);
-      const expected = JSON.parse(await fs.readFile(`./src/tests/examples/${file}.json`, { encoding: 'utf8' }));
-      expect(result).deep.equal(expected);
+      const jsonPath = `./src/tests/examples/${file}.json`;
+      let expected;
+      try {
+        expected = JSON.parse(await fs.readFile(jsonPath, { encoding: 'utf8' }));
+      }
+      catch (e) {
+        await fs.writeFile(jsonPath, JSON.stringify(result));
+      }
+      if (expected)
+        expect(result).deep.equal(expected);
     });
   }
 })

@@ -34,15 +34,15 @@ type TitleType = { title: string, type: string };
 type Taggable = { tags: TagType[]; };
 type DescriptionType = { description: string[] };
 type FeatureBlockType = { type: "Feature"; scenarios: ScenarioBlockType[] } & TitleType & Taggable & DescriptionType;
-type StepLineOrTableBlockType = ({ type: "Step"; word: string; text: (ParameterType | RegularTextType)[] }) | TableType;
-type ExampleBlockType = { type: "Example"; steps: StepLineOrTableBlockType[] } & TitleType & Taggable;
-type ScenarioBlockType = { type: "Scenario"; steps: StepLineOrTableBlockType[] } & TitleType & Taggable;
+type StepLineTableBlockOrDocStringType = ({ type: "Step"; word: string; text: (ParameterType | RegularTextType)[] }) | TableType | DocStringType;
+type ExampleBlockType = { type: "Example"; steps: StepLineTableBlockOrDocStringType[] } & TitleType & Taggable;
+type ScenarioBlockType = { type: "Scenario"; steps: StepLineTableBlockOrDocStringType[] } & TitleType & Taggable;
 type ExamplesBlockType = { table: TableType } & ExamplesType;
 type Comment = { type: "Comment"; comment: string; };
 type BlankLine = { type: "BlankLine"; };
 type TagType = { type: "Tag"; value: string };
 type TableType = { type: "Table"; rows: { type: "TableRow"; cells: string[] }[] };
-type ScenarioOutlineBlockType = { type: "ScenarioOutline"; steps: StepLineOrTableBlockType[]; examples: (ExampleBlockType | BlankLine | Comment)[] } & TitleType;
+type ScenarioOutlineBlockType = { type: "ScenarioOutline"; steps: (StepLineTableBlockOrDocStringType | BlankLine | Comment)[]; examples: (ExampleBlockType | BlankLine | Comment)[] } & TitleType & Taggable;
 type ScenarioOutlineTitleType = { type: "ScenarioOutline"; } & TitleType;
 type BackgroundTitleType = { type: "Background"; } & TitleType;
 type ScenarioTitleType = { type: "Scenario"; } & TitleType;
@@ -50,11 +50,12 @@ type FeatureTitleType = { type: "Feature"; } & TitleType;
 type RuleTitleType = { type: "Rule"; } & TitleType;
 type ExampleTitleType = { type: "Example"; } & TitleType;
 type ExamplesType = { type: "Examples" };
-type BackgroundBlockType = { type: "Background"; steps: StepLineOrTableBlockType[] } & TitleType;
+type BackgroundBlockType = { type: "Background"; steps: StepLineTableBlockOrDocStringType[] } & TitleType;
 type RuleBlockType = { type: "Rule"; examples: (ExampleBlockType | BlankLine | Comment)[] } & TitleType & Taggable;
 type ParameterType = { type: 'Parameter'; name: string; };
 type RegularTextType = { type: 'Regular Text'; text: string; };
-type SingleTableRowType = { type: "TableRow"; cells: string[] };;
+type SingleTableRowType = { type: "TableRow"; cells: string[] };
+type DocStringType = { type: 'DocString', content: string };
 
 type GherkinType = {
   NoNewLineContent: string
@@ -76,7 +77,7 @@ type GherkinType = {
   FilledCell: string;
   TableLine: string[];
   Table: TableType;
-  StepLineOrTableBlock: StepLineOrTableBlockType;
+  StepLineTableBlockOrDocString: StepLineTableBlockOrDocStringType;
   ScenarioOutlineTitle: ScenarioOutlineTitleType;
   BackgroundTitle: BackgroundTitleType;
   ScenarioTitle: ScenarioTitleType;
@@ -92,10 +93,12 @@ type GherkinType = {
   FeatureBlock: FeatureBlockType;
   ScenarioBlock: ScenarioBlockType;
   GherkinFile: (FeatureBlockType | ScenarioBlockType | Comment | BlankLine)[];
+  ConsumeSameIndent: string;
   IndentSame: number;
   IndentMoreLookahead: number;
   NewLine: null;
   EndOfLineOrFile: null;
+  DocString: DocStringType;
 }
 
 function not(parser: Parser<any>, description: string) {
@@ -148,7 +151,14 @@ function GherkinParserFactory(indent: number): TypedLanguage<GherkinType> {
       const lines = (alt(blankLine, lineStop, line)).chain<string>(r => r === false ? fail(``) : of(r)).many();
       return lines.map<DescriptionType>((description) => ({ description }));
     },
+    DocString: (r) => {
+      const delimiter = r.IndentSame.then(string(`"""`)).desc('docstring delimiter');
+      const line = r.ConsumeSameIndent.then(noneOf(`"\n`).or(string(`"`).notFollowedBy(string(`""`))).many().tie());
 
+      return seq(delimiter.skip(newline), line.skip(newline).many().tieWith(`\n`), delimiter)
+        .map(([_start, content, _end]) => ({ type: 'DocString', content } as const))
+        .skip(r.EndOfLineOrFile);
+    },
     // All things tags
     Tag: (r) => string(`@`).then(regexp(/[^\s@]/).desc(`valid tag characters`).many().tie()).map(r => ({ type: `Tag`, value: r })),
     Tags: (r) => r.IndentSame.then(r.Tag.sepBy1(r.HorizontalWhitespaceCharacter.atLeast(1))).skip(r.EndOfLineOrFile).map(([tag, ...tags]) => [tag, ...tags]),
@@ -162,7 +172,7 @@ function GherkinParserFactory(indent: number): TypedLanguage<GherkinType> {
     SingleTableRow: (r) => r.TableLine.skip(r.EndOfLineOrFile).map(cells => ({ type: "TableRow", cells })),
     Table: (r) => r.IndentSame.then(r.SingleTableRow).atLeast(2).map(rows => ({ type: 'Table', rows })),
 
-    StepLineOrTableBlock: (r) => alt(...stepIdentifiers.map(word => r.IndentSame.then(string(word)).then(r.HorizontalWhitespaceCharacter.many()).then(r.ParameterizedLine).skip(r.EndOfLineOrFile).desc(`${word} step`).map((text) => ({ type: `Step`, word, text }))), r.IndentMoreLookahead.chain(chainIndented(ri => ri.Table))),
+    StepLineTableBlockOrDocString: (r) => alt(...stepIdentifiers.map(word => r.IndentSame.then(string(word)).then(r.HorizontalWhitespaceCharacter.many()).then(r.ParameterizedLine).skip(r.EndOfLineOrFile).desc(`${word} step`).map((text) => ({ type: `Step`, word, text }))), r.IndentMoreLookahead.chain(chainIndented(ri => ri.Table.or(ri.DocString)))),
 
     ScenarioOutlineTitle: (r) => r.IndentSame.then(string(`Scenario Outline`)).then(string(':')).then(r.HorizontalWhitespaceCharacter.many()).then(r.NoNewLineContent).map(title => ({ type: `ScenarioOutline`, title })),
     BackgroundTitle: (r) => r.IndentSame.then(string(`Background`)).then(string(':')).then(r.HorizontalWhitespaceCharacter.many()).then(r.NoNewLineContent).map(title => ({ type: `Background`, title })),
@@ -172,14 +182,30 @@ function GherkinParserFactory(indent: number): TypedLanguage<GherkinType> {
     ExampleTitle: (r) => r.IndentSame.then(string(`Example`)).then(string(':')).then(r.HorizontalWhitespaceCharacter.many()).then(r.NoNewLineContent).map(title => ({ type: `Example`, title })),
     ExamplesTitle: (r) => r.IndentSame.then(string(`Examples`)).then(string(':')).then(r.HorizontalWhitespaceCharacter.many()).map(() => ({ type: `Examples` })),
 
-    ExamplesBlock: (r) => seq(r.ExamplesTitle.skip(r.EndOfLineOrFile), r.IndentMoreLookahead.chain(chainIndented(ri => ri.Table))).map(([title, table]) => ({ ...title, table: table })),
-    BackgroundBlock: (r) => seq(r.BackgroundTitle.skip(r.EndOfLineOrFile), r.IndentMoreLookahead.chain(chainIndented(ri => alt(ri.StepLineOrTableBlock, r.BlankLinesOrComments).many()))).map(([title, steps]) => ({ ...title, steps })),
+    ExamplesBlock: (r) => seq(r.ExamplesTitle.skip(r.EndOfLineOrFile).skip(r.BlankLinesOrComments.many()), r.IndentMoreLookahead.chain(chainIndented(ri => ri.Table))).map(([title, table]) => ({ ...title, table: table })),
+    BackgroundBlock: (r) => seq(r.BackgroundTitle.skip(r.EndOfLineOrFile).skip(r.BlankLinesOrComments.many()), r.IndentMoreLookahead.chain(chainIndented(ri => alt(ri.StepLineTableBlockOrDocString, r.BlankLinesOrComments).many()))).map(([title, steps]) => ({ ...title, steps })),
 
-    ScenarioOutlineBlock: (r) => seq(r.ScenarioOutlineTitle.skip(r.EndOfLineOrFile), r.IndentMoreLookahead.chain(chainIndented(ri => seq(alt(ri.StepLineOrTableBlock, ri.BlankLinesOrComments).many(), seq(ri.ExamplesBlock.atMost(1), ri.BlankLinesOrComments.many()))))).map(([title, [steps, [examples, blankLines]]]) => ({ ...title, steps, examples: [...examples, ...blankLines] })) as any,
-    FeatureBlock: (r) => seq(r.TagsOptional, r.FeatureTitle.skip(r.EndOfLineOrFile), r.IndentMoreLookahead.chain(chainIndented(ri => seq(ri.DescriptionParser, alt(ri.ScenarioBlock, ri.ScenarioOutlineBlock, ri.BackgroundBlock, ri.RuleBlock).many())))).map(([tags, feature, [description, scenarios]]) => ({ ...feature, tags, ...description, scenarios })),
+    ScenarioOutlineBlock: (r) => {
+      const tagsParser = r.TagsOptional;
+      const titleParser = r.ScenarioOutlineTitle.skip(r.EndOfLineOrFile).skip(r.BlankLinesOrComments.many());
+      const stepsParser = r.IndentMoreLookahead.chain(chainIndented(ri => {
+        const stepsParser = alt<StepLineTableBlockOrDocStringType | Comment | BlankLine>(ri.StepLineTableBlockOrDocString, ri.BlankLinesOrComments).many();
+        const exampleBlockParser = ri.ExamplesBlock.atMost(1);
+        const blankLineParser = ri.BlankLinesOrComments.many();
+        return seq(stepsParser, exampleBlockParser, blankLineParser);
+      }));
+      const par = seq(tagsParser, titleParser, stepsParser)
+      
+      return par.map(result => {
+        const [tags, title, [steps, example, trailingBlankLines] ] = result;
+        const examples = [...example, ...trailingBlankLines];
+        return { tags, ...title, steps, examples } as ScenarioOutlineBlockType;
+      })
+    },
+    FeatureBlock: (r) => seq(r.TagsOptional, r.FeatureTitle.skip(r.EndOfLineOrFile).skip(r.BlankLinesOrComments.many()), r.IndentMoreLookahead.chain(chainIndented(ri => seq(ri.DescriptionParser, alt(ri.ScenarioBlock, ri.ScenarioOutlineBlock, ri.BackgroundBlock, ri.RuleBlock).many())))).map(([tags, feature, [description, scenarios]]) => ({ ...feature, tags, ...description, scenarios })),
     RuleBlock: (r) => seq(r.TagsOptional, r.RuleTitle.skip(r.EndOfLineOrFile).skip(r.BlankLinesOrComments.many()), r.IndentMoreLookahead.chain(chainIndented(ri => ri.ExampleBlock.many()))).map(([tags, title, examples]) => ({ ...title, tags, examples })),
-    ExampleBlock: (r) => seq(r.TagsOptional, r.ExampleTitle.skip(r.EndOfLineOrFile), r.IndentMoreLookahead.chain(chainIndented(ri => alt(ri.StepLineOrTableBlock, r.BlankLinesOrComments).many()))).map(([tags, title, steps]) => ({ ...title, tags, steps })),
-    ScenarioBlock: (r) => seq(r.TagsOptional, r.ScenarioTitle.skip(r.EndOfLineOrFile), r.IndentMoreLookahead.chain(chainIndented(ri => alt(ri.StepLineOrTableBlock, r.BlankLinesOrComments).many()))).map(([tags, title, steps]) => ({ ...title, tags, steps })),
+    ExampleBlock: (r) => seq(r.TagsOptional, r.ExampleTitle.skip(r.EndOfLineOrFile).skip(r.BlankLinesOrComments.many()), r.IndentMoreLookahead.chain(chainIndented(ri => alt(ri.StepLineTableBlockOrDocString, r.BlankLinesOrComments).many()))).map(([tags, title, steps]) => ({ ...title, tags, steps })),
+    ScenarioBlock: (r) => seq(r.TagsOptional, r.ScenarioTitle.skip(r.EndOfLineOrFile).skip(r.BlankLinesOrComments.many()), r.IndentMoreLookahead.chain(chainIndented(ri => alt(ri.StepLineTableBlockOrDocString, r.BlankLinesOrComments).many()))).map(([tags, title, steps]) => ({ ...title, tags, steps })),
 
     GherkinFile: (r) => alt(r.BlankLinesOrComments, r.ScenarioOutlineBlock, r.ScenarioBlock, r.FeatureBlock).many(),
     IndentSame: (r) => regexp(/[ ]*/).map(s => s.length).chain(n => {
@@ -188,6 +214,7 @@ function GherkinParserFactory(indent: number): TypedLanguage<GherkinType> {
       }
       return fail(`${indent} spaces (found ${n})`);
     }),
+    ConsumeSameIndent: (r) => string(` `).times(indent).tie(),
     IndentMoreLookahead: () => {
       const x = regexp(/[ ]*/).map(s => s.length);
       return Parsimmon<number>(function (input, i) {

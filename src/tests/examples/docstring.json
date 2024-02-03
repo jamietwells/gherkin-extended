@@ -1,0 +1,139 @@
+[
+    {
+        "type": "Feature",
+        "title": "Blog Post Management",
+        "tags": [],
+        "description": [],
+        "scenarios": [
+            {
+                "type": "Scenario",
+                "title": "Creating a blog post with detailed content",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user \"admin\" is logged in"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user creates a new blog post with the following content:"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "DocString",
+                        "content": "Title: Adventures in Testing\r\nBody:\r\nExploring the challenges and joys of software testing.\r\n\"Quotes\" can be tricky, but not if you're careful.\r"
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the blog post should be successfully created"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "Providing code examples in a blog post",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user \"developer\" is logged in"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user adds a new section to the blog post with the following code snippet:"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "DocString",
+                        "content": "```\r\nfunction helloWorld() {\r\n  console.log(\"Hello, world!\");\r\n}\r\n```\r\nNote: Ensure to replace \"world\" with your name.\r"
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the code snippet should be visible in the blog post preview"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "Escaping quotes within Doc Strings",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user \"editor\" is reviewing content"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the editor sees the following review comment:"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "DocString",
+                        "content": "Reviewer's comment: \"Excellent post! However, please consider changing the phrase 'not if you're careful' to 'with the right approach'.\"\r"
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the editor should be able to edit the post accordingly"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

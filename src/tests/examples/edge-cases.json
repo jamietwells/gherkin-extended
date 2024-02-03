@@ -1,0 +1,321 @@
+[
+    {
+        "type": "Comment",
+        "comment": "Feature with minimal description"
+    },
+    {
+        "type": "Feature",
+        "title": "Complex User Management",
+        "tags": [],
+        "description": [],
+        "scenarios": [
+            {
+                "type": "Background",
+                "title": "User exists",
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the following user exists:"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Table",
+                        "rows": [
+                            {
+                                "type": "TableRow",
+                                "cells": [
+                                    "name",
+                                    "email",
+                                    "role"
+                                ]
+                            },
+                            {
+                                "type": "TableRow",
+                                "cells": [
+                                    "Alice",
+                                    "alice@example.com",
+                                    "admin"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Comment",
+                        "comment": "Inline comment"
+                    },
+                    {
+                        "type": "Step",
+                        "word": "And",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the database is ready"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    },
+                    {
+                        "type": "Comment",
+                        "comment": "Scenario with parameterized steps and a doc string"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "Admin creates a new user account",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the admin user \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "adminName"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\" creates a new account with the name \"Bob\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "DocString",
+                        "content": "User details:\r\n- Name: Bob\r\n- Role: user\r"
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user \"Bob\" should be present in the system"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    },
+                    {
+                        "type": "Comment",
+                        "comment": "Scenario with consecutive blank lines and comments"
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ]
+            },
+            {
+                "type": "Scenario",
+                "title": "User deletion",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user \"Charlie\" exists"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    },
+                    {
+                        "type": "Comment",
+                        "comment": "This is a tricky part"
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the admin deletes the user \"Charlie\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    },
+                    {
+                        "type": "BlankLine"
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the user \"Charlie\" should not exist in the system"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    },
+                    {
+                        "type": "Comment",
+                        "comment": "Scenario Outline with less common whitespace handling"
+                    }
+                ]
+            },
+            {
+                "tags": [
+                    {
+                        "type": "Tag",
+                        "value": "smoke"
+                    }
+                ],
+                "type": "ScenarioOutline",
+                "title": "Password change",
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "user \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "name"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\" is logged in"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Step",
+                        "word": "When",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "user \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "name"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\" changes their password to \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "newPassword"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    },
+                    {
+                        "type": "Step",
+                        "word": "Then",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "the new password should be \""
+                            },
+                            {
+                                "type": "Parameter",
+                                "name": "newPassword"
+                            },
+                            {
+                                "type": "Regular Text",
+                                "text": "\""
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BlankLine"
+                    }
+                ],
+                "examples": [
+                    {
+                        "type": "Examples",
+                        "table": {
+                            "type": "Table",
+                            "rows": [
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "name",
+                                        "newPassword"
+                                    ]
+                                },
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "Alice",
+                                        "secret123"
+                                    ]
+                                },
+                                {
+                                    "type": "TableRow",
+                                    "cells": [
+                                        "Bob",
+                                        "password"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "type": "BlankLine"
+                    },
+                    {
+                        "type": "Comment",
+                        "comment": "Another feature in the same file, which is unusual"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "type": "Feature",
+        "title": "Additional Feature in Same File",
+        "tags": [],
+        "description": [],
+        "scenarios": [
+            {
+                "type": "Scenario",
+                "title": "Just to add complexity",
+                "tags": [],
+                "steps": [
+                    {
+                        "type": "Step",
+                        "word": "Given",
+                        "text": [
+                            {
+                                "type": "Regular Text",
+                                "text": "something is done"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
