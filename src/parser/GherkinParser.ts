@@ -2,6 +2,7 @@
 
 import Parsimmon, { TypedLanguage } from 'parsimmon';
 import pkg, { Parser } from 'parsimmon';
+import { GherkinType, DescriptionType, StepLineTableBlockOrDocStringType, Comment, BlankLine, ScenarioOutlineBlockType } from './types.js';
 const { string, newline, createLanguage, regexp, noneOf, oneOf, seq, alt, eof, of, fail, any, lookahead } = pkg;
 
 const stepIdentifiers = [
@@ -29,77 +30,6 @@ const keywords = [
   `#`,
   ...stepIdentifiers
 ];
-
-type TitleType = { title: string, type: string };
-type Taggable = { tags: TagType[]; };
-type DescriptionType = { description: string[] };
-type FeatureBlockType = { type: "Feature"; scenarios: ScenarioBlockType[] } & TitleType & Taggable & DescriptionType;
-type StepLineTableBlockOrDocStringType = ({ type: "Step"; word: string; text: (ParameterType | RegularTextType)[] }) | TableType | DocStringType;
-type ExampleBlockType = { type: "Example"; steps: StepLineTableBlockOrDocStringType[] } & TitleType & Taggable;
-type ScenarioBlockType = { type: "Scenario"; steps: StepLineTableBlockOrDocStringType[] } & TitleType & Taggable;
-type ExamplesBlockType = { table: TableType } & ExamplesType;
-type Comment = { type: "Comment"; comment: string; };
-type BlankLine = { type: "BlankLine"; };
-type TagType = { type: "Tag"; value: string };
-type TableType = { type: "Table"; rows: { type: "TableRow"; cells: string[] }[] };
-type ScenarioOutlineBlockType = { type: "ScenarioOutline"; steps: (StepLineTableBlockOrDocStringType | BlankLine | Comment)[]; examples: (ExampleBlockType | BlankLine | Comment)[] } & TitleType & Taggable;
-type ScenarioOutlineTitleType = { type: "ScenarioOutline"; } & TitleType;
-type BackgroundTitleType = { type: "Background"; } & TitleType;
-type ScenarioTitleType = { type: "Scenario"; } & TitleType;
-type FeatureTitleType = { type: "Feature"; } & TitleType;
-type RuleTitleType = { type: "Rule"; } & TitleType;
-type ExampleTitleType = { type: "Example"; } & TitleType;
-type ExamplesType = { type: "Examples" };
-type BackgroundBlockType = { type: "Background"; steps: StepLineTableBlockOrDocStringType[] } & TitleType;
-type RuleBlockType = { type: "Rule"; examples: (ExampleBlockType | BlankLine | Comment)[] } & TitleType & Taggable;
-type ParameterType = { type: 'Parameter'; name: string; };
-type RegularTextType = { type: 'Regular Text'; text: string; };
-type SingleTableRowType = { type: "TableRow"; cells: string[] };
-type DocStringType = { type: 'DocString', content: string };
-
-type GherkinType = {
-  NoNewLineContent: string
-  Parameter: ParameterType;
-  RegularText: RegularTextType;
-  ParameterizedLine: (ParameterType | RegularTextType)[];
-  SingleTableRow: SingleTableRowType;
-  HorizontalWhitespaceCharacter: string
-  Comment: Comment;
-  BlankLine: BlankLine;
-  BlankLinesOrComments: BlankLine | Comment;
-  AnyKeyword: string;
-  DescriptionParser: DescriptionType;
-  Tag: TagType;
-  Tags: TagType[];
-  TagsOptional: TagType[];
-  CellContent: string;
-  EmptyCell: string;
-  FilledCell: string;
-  TableLine: string[];
-  Table: TableType;
-  StepLineTableBlockOrDocString: StepLineTableBlockOrDocStringType;
-  ScenarioOutlineTitle: ScenarioOutlineTitleType;
-  BackgroundTitle: BackgroundTitleType;
-  ScenarioTitle: ScenarioTitleType;
-  FeatureTitle: FeatureTitleType;
-  RuleTitle: RuleTitleType;
-  ExampleTitle: ExampleTitleType;
-  ExamplesTitle: ExamplesType;
-  BackgroundBlock: BackgroundBlockType;
-  RuleBlock: RuleBlockType;
-  ExamplesBlock: ExamplesBlockType;
-  ExampleBlock: ExampleBlockType;
-  ScenarioOutlineBlock: ScenarioOutlineBlockType;
-  FeatureBlock: FeatureBlockType;
-  ScenarioBlock: ScenarioBlockType;
-  GherkinFile: (FeatureBlockType | ScenarioBlockType | Comment | BlankLine)[];
-  ConsumeSameIndent: string;
-  IndentSame: number;
-  IndentMoreLookahead: number;
-  NewLine: null;
-  EndOfLineOrFile: null;
-  DocString: DocStringType;
-}
 
 function not(parser: Parser<any>, description: string) {
   return Parsimmon(function (input, i) {
