@@ -3,6 +3,7 @@
 import Parsimmon, { TypedLanguage } from 'parsimmon';
 import pkg, { Parser } from 'parsimmon';
 import { GherkinType, DescriptionType, StepLineTableBlockOrDocStringType, Comment, BlankLine, ScenarioOutlineBlockType } from './types.js';
+
 const { string, newline, createLanguage, regexp, noneOf, oneOf, seq, alt, eof, of, fail, any, lookahead } = pkg;
 
 const stepIdentifiers = [
@@ -42,11 +43,6 @@ function not(parser: Parser<any>, description: string) {
     return Parsimmon.makeFailure(i, 'anything different than "' + description + '"');
   });
 }
-
-export const Log = Parsimmon(function (input, i) {
-  console.log(JSON.stringify(input.slice(i)), i);
-  return Parsimmon.makeSuccess(i, null);
-});
 
 function GherkinParserFactory(indent: number): TypedLanguage<GherkinType> {
   function chainIndented<T>(parser: (r: TypedLanguage<GherkinType>) => Parser<T>) {
